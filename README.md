@@ -24,6 +24,9 @@ The goal of your project is to predict the manner in which they did the exercise
 
 Your submission for the Peer Review portion should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5. It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online (and you always want to make it easy on graders :-).
 
+Good overview of working with "gh-pages" is located at: "https://github.com/lgreski/datasciencectacontent/blob/master/markdown/pml-ghPagesSetup.md"
+
+
 ## Quiz 
 
 Apply your machine learning algorithm to the 20 test cases available in the test data above and submit your predictions in appropriate format to the Course Project Prediction Quiz for automated grading.
