@@ -43,7 +43,7 @@ Read more: http://groupware.les.inf.puc-rio.br/har#ixzz4F6NogDKh
 ### Preparation
 
 
-
+ 
 
 
 
