@@ -145,6 +145,68 @@ Class A corresponds to the specified execution of the exercise, while the other 
 <p>Read more: <a href="http://groupware.les.inf.puc-rio.br/har#ixzz4F6NogDKh" class="uri">http://groupware.les.inf.puc-rio.br/har#ixzz4F6NogDKh</a></p>
 <div id="preparation" class="section level3">
 <h3>Preparation</h3>
+<p>In order to set up the environment such that we can create reproducible results, we need to load the necessary R libraries, and initialize a few parameters.</p>
+<pre class="r"><code>library(caret)
+library(knitr)
+library(rattle)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+set.seed(527)</code></pre>
+</div>
+<div id="obtain-data" class="section level3">
+<h3>Obtain Data</h3>
+<p>First check to see if we’ve already downloaded and saved a copy of the data; if not, then download it from the public source in the internet.</p>
+<pre class="r"><code>harPath &lt;- &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/&quot;
+trnData &lt;- &quot;pml-training.csv&quot;
+tstData &lt;- &quot;pml-testing.csv&quot;
+
+if (!(file.exists(trnData))) { 
+  download.file(paste(c(harPath,trnData),collapse=&quot;&quot;), destfile=trnData)
+}
+if (!(file.exists(trnData))) {
+  stop(&quot;Failed to download Training Data&quot;)
+}
+if (!(file.exists(tstData))) { 
+  download.file(paste(c(harPath,tstData),collapse=&quot;&quot;), destfile=tstData)
+}
+if (!(file.exists(tstData))) {
+  stop(&quot;Failed to download Test Data&quot;)
+}</code></pre>
+</div>
+<div id="pruning-and-cleaning" class="section level3">
+<h3>Pruning and Cleaning</h3>
+<p>Preliminary examination of the data indicated that there were numerous occurances of empty fields, and strings such as “NA” and “#DIV/0!” that were indicative of problems with the data.</p>
+<p>We’ll read the data from the “csv” files, and adjust the problem fields; even in the test data, although the anomolies were observed only in the training data. We just do this to make the data more uniform, so that it’s easier to reduce the number of predictors in later steps.</p>
+<pre class="r"><code>badStrings &lt;- c(&quot;#DIV/0!&quot;, &quot;NA&quot;, &quot;&quot;)
+trnFrame &lt;- read.csv(trnData, na.strings=badStrings)
+tstFrame &lt;- read.csv(tstData, na.strings=badStrings)</code></pre>
+<p>Before we continue with additional cleaning of the data, we’ll perform a few simple “sanity checks;” such as making sure that both data frames have the same number of columns, and that the columns have the same names in each data frame. (except for “classe” and “problem_id” which are special cases applicable to the exercise)</p>
+<pre class="r"><code>tstNames &lt;- names(tstFrame)
+trnNames &lt;- names(trnFrame)
+if (!(length(tstNames)==length(trnNames))) {
+  stop(&quot;Mismatched column count&quot;)
+}
+tstNames[length(tstNames)] &lt;- &quot;X&quot; # adjust last one
+trnNames[length(trnNames)] &lt;- &quot;X&quot;
+
+if (!(identical(tstNames,trnNames))) {
+  stop(&quot;Mismatched column names&quot;)
+}</code></pre>
+<p>If we make it this far, then both the test data and the training data are reasonably uniform, and we can continue processing. For now, we’ll set the Test Data aside, and work with the Training set.</p>
+<p>We’ll attempt to reduce the number of predictors by removing the columns that we don’t expect to influence the prediction, and then we’ll split the training data into a training (60%) and a validation (40%) data set.</p>
+<p>Currently we have 160 variables; we should be able to prune that down a bit by taking out column that have near zero variance, and thus would not influence the prediction very much.</p>
+<pre class="r"><code>nZ &lt;- nearZeroVar(trnFrame)
+trnFrame2 &lt;- trnFrame[, -nZ]</code></pre>
+<p>Now we have only 124 columns. Let’s remove columns that are mostly “NA;” any column that is 90% or more “NA” is not likely to influence the prediction.</p>
+<pre class="r"><code>mostlyNA &lt;- sapply(trnFrame2, function(x) mean (is.na(x))) &gt; 0.9
+trnFrame2 &lt;- trnFrame2[, mostlyNA==FALSE]</code></pre>
+<p>By removing the “mostly NA” columns, we’ve reduced the count to 59.</p>
+<p>Although it is possible that the time of day that the exercise was performed could have some influence on the outcome, we don’t consider that it would have a significant effect on the prediction model. Similarly, we couldn’t justify that a window would affect the outcome. Therefore, in order to further reduce the number of predictors, we’ll remove columns 1 through 6, which appear to be a sample number, the subject’s name, a couple of time stamps, and “num_window.”</p>
+<pre class="r"><code>trnFrame2 &lt;- trnFrame2[, -(1:6)]
+dim(trnFrame2)</code></pre>
+<pre><code>## [1] 19622    53</code></pre>
+<p>Now we’ve reduced the number of variables to 53; however we still have 19622 rows in the data set.</p>
 </div>
 </div>
 

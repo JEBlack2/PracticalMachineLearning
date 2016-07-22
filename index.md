@@ -1,11 +1,6 @@
----
-title: "Practical Machine Learning Project"
-author: "J.E.Black"
-date: "July 21, 2016"
-output: 
-  html_document: 
-    keep_md: yes
----
+# Practical Machine Learning Project
+J.E.Black  
+July 21, 2016  
 
 ## Executive Summary
 
@@ -48,7 +43,8 @@ In order to set up the environment such that we can create
 reproducible results, we need to load the necessary R libraries, and 
 initialize a few parameters.
 
-```{r setup, echo=TRUE, message=FALSE}
+
+```r
 library(caret)
 library(knitr)
 library(rattle)
@@ -63,7 +59,8 @@ set.seed(527)
 First check to see if we've already downloaded and saved a copy of the data;
 if not, then download it from the public source in the internet.
 
-```{r data1, echo=TRUE}
+
+```r
 harPath <- "https://d396qusza40orc.cloudfront.net/predmachlearn/"
 trnData <- "pml-training.csv"
 tstData <- "pml-testing.csv"
@@ -93,7 +90,8 @@ even in the test data, although the anomolies were observed only in the training
 We just do this to make the data more uniform, so that it's easier 
 to reduce the number of predictors in later steps.
 
-```{r data2, echo=TRUE}
+
+```r
 badStrings <- c("#DIV/0!", "NA", "")
 trnFrame <- read.csv(trnData, na.strings=badStrings)
 tstFrame <- read.csv(tstData, na.strings=badStrings)
@@ -105,7 +103,8 @@ such as making sure that both data frames have the same number of columns,
 and that the columns have the same names in each data frame.
 (except for "classe" and "problem_id" which are special cases applicable to the exercise)
 
-```{r sanity1, echo=TRUE}
+
+```r
 tstNames <- names(tstFrame)
 trnNames <- names(trnFrame)
 if (!(length(tstNames)==length(trnNames))) {
@@ -117,7 +116,6 @@ trnNames[length(trnNames)] <- "X"
 if (!(identical(tstNames,trnNames))) {
   stop("Mismatched column names")
 }
-
 ```
 
 If we make it this far, then both the test data and the training data
@@ -128,25 +126,26 @@ We'll attempt to reduce the number of predictors by removing the columns
 that we don't expect to influence the prediction, and then we'll split 
 the training data into a training (60%) and a validation (40%) data set.
 
-Currently we have `r length(trnNames)` variables; 
+Currently we have 160 variables; 
 we should be able to prune that down a bit by taking out
 column that have near zero variance, and thus would not influence the prediction very much.
 
-```{r nearZero, echo=TRUE}
+
+```r
 nZ <- nearZeroVar(trnFrame)
 trnFrame2 <- trnFrame[, -nZ]
 ```
 
-Now we have only `r length(names(trnFrame2))` columns.
+Now we have only 124 columns.
 Let's remove columns that are mostly "NA;" 
 any column that is 90% or more "NA" is not likely to influence the prediction.
 
-```{r notAp, echo=TRUE}
+
+```r
 mostlyNA <- sapply(trnFrame2, function(x) mean (is.na(x))) > 0.9
 trnFrame2 <- trnFrame2[, mostlyNA==FALSE]
-
 ```
-By removing the "mostly NA" columns, we've reduced the count to `r length(names(trnFrame2))`.
+By removing the "mostly NA" columns, we've reduced the count to 59.
 
 Although it is possible that the time of day that the exercise was performed
 could have some influence on the outcome, we don't consider that it would have 
@@ -156,13 +155,18 @@ Therefore, in order to further reduce the number of predictors,
 we'll remove columns 1 through 6, which appear to be a sample number, 
 the subject's name, a couple of time stamps, and "num_window."
 
-```{r idCols, echo=TRUE}
+
+```r
 trnFrame2 <- trnFrame2[, -(1:6)]
 dim(trnFrame2)
 ```
 
-Now we've reduced the number of variables to `r length(names(trnFrame2))`;
-however we still have `r nrow(trnFrame2)` rows in the data set.
+```
+## [1] 19622    53
+```
+
+Now we've reduced the number of variables to 53;
+however we still have 19622 rows in the data set.
 
 
 
