@@ -1,13 +1,31 @@
 ---
 title: "Practical Machine Learning Project"
 author: "J.E.Black"
-date: "July 21, 2016"
-output: 
-  html_document: 
+date: "July 22, 2016"
+output:
+  html_document:
     keep_md: yes
+  word_document: default
 ---
 
 ## Executive Summary
+We obtained a rather large collection of data detailing measurments
+taken as people performed weight lifting exercises, using five different methods, 
+both correct and incorrect. 
+The particpants wore various instruments to allow applicable data to be collected.
+
+We used practical machine learning techniques to analyze the data, 
+determine reasonable methods for performing such analysis, 
+and developed a prediction model which, 
+given certain specific metrics, could predict the method used 
+with an accuracy exceeding 95%, using only the "top 5" most significant variables collected.
+
+Further analysis to determine and select additional significant covariables is expected
+to improve the accuracy of our model. 
+From our analysis, we would expect that inclusion of four additional covariables
+would push the accuracy rate to approximately 99% or better.
+
+Background and analysis details follow. 
 
 
 ## Background
@@ -15,9 +33,10 @@ Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible t
 These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. 
 One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
 
-Our goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of six  participants. 
+Our goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of six  participants to predict the manner in which they did the exercise 
+(this is the "classe" column in the training data).
 Each was asked to perform barbell lifts correctly and incorrectly in five different ways. 
-
+That data was recorded and made available to us as described below.
 
 ## Exploratory Data Analysis
 
@@ -37,7 +56,7 @@ We quote the authors' description of the data:
 ```
 Six young health participants were asked to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: exactly according to the specification (Class A), throwing the elbows to the front (Class B), lifting the dumbbell only halfway (Class C), lowering the dumbbell only halfway (Class D) and throwing the hips to the front (Class E).
 
-Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes. Participants were supervised by an experienced weight lifter to make sure the execution complied to the manner they were supposed to simulate. The exercises were performed by six male participants aged between 20-28 years, with little weight lifting experience. We made sure that all participants could easily simulate the mistakes in a safe and controlled manner by using a relatively light dumbbell (1.25kg).
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes.
 ```
 Read more: http://groupware.les.inf.puc-rio.br/har#ixzz4F6NogDKh
 
@@ -46,24 +65,24 @@ Read more: http://groupware.les.inf.puc-rio.br/har#ixzz4F6NogDKh
 
 In order to set up the environment such that we can create
 reproducible results, we need to load the necessary R libraries, and 
-initialize a few parameters.
+initialize a few parameters (not shown).
 
-```{r setup, echo=TRUE, message=FALSE}
+```{r setup, echo=FALSE, message=FALSE}
 library(caret)
 library(knitr)
 library(rattle)
 library(randomForest)
 library(rpart)
 library(rpart.plot)
-set.seed(527)
+randomSeed <- 527 # set it once
 ```
 
 ### Obtain Data
 
 First check to see if we've already downloaded and saved a copy of the data;
-if not, then download it from the public source in the internet.
+if not, then download it from the public source in the internet (not shown).
 
-```{r data1, echo=TRUE}
+```{r data1, echo=FALSE}
 harPath <- "https://d396qusza40orc.cloudfront.net/predmachlearn/"
 trnData <- "pml-training.csv"
 tstData <- "pml-testing.csv"
@@ -91,9 +110,9 @@ that were indicative of problems with the data.
 We'll read the data from the "csv" files, and adjust the problem fields;
 even in the test data, although the anomolies were observed only in the training data.
 We just do this to make the data more uniform, so that it's easier 
-to reduce the number of predictors in later steps.
+to reduce the number of predictors in later steps (not shown).
 
-```{r data2, echo=TRUE}
+```{r data2, echo=FALSE}
 badStrings <- c("#DIV/0!", "NA", "")
 trnFrame <- read.csv(trnData, na.strings=badStrings)
 tstFrame <- read.csv(tstData, na.strings=badStrings)
@@ -102,10 +121,11 @@ tstFrame <- read.csv(tstData, na.strings=badStrings)
 Before we continue with additional cleaning of the data, 
 we'll perform a few simple "sanity checks;" 
 such as making sure that both data frames have the same number of columns, 
-and that the columns have the same names in each data frame.
-(except for "classe" and "problem_id" which are special cases applicable to the exercise)
+and that the columns have the same names in each data frame, 
+except for "classe" and "problem_id" which are special cases 
+applicable to the exercise (not shown).
 
-```{r sanity1, echo=TRUE}
+```{r sanity1, echo=FALSE}
 tstNames <- names(tstFrame)
 trnNames <- names(trnFrame)
 if (!(length(tstNames)==length(trnNames))) {
@@ -126,7 +146,7 @@ For now, we'll set the Test Data aside, and work with the Training set.
 
 We'll attempt to reduce the number of predictors by removing the columns
 that we don't expect to influence the prediction, and then we'll split 
-the training data into a training (60%) and a validation (40%) data set.
+the training data into a training/modeling and a validation data set.
 
 Currently we have `r length(trnNames)` variables; 
 we should be able to prune that down a bit by taking out
@@ -144,7 +164,6 @@ any column that is 90% or more "NA" is not likely to influence the prediction.
 ```{r notAp, echo=TRUE}
 mostlyNA <- sapply(trnFrame2, function(x) mean (is.na(x))) > 0.9
 trnFrame2 <- trnFrame2[, mostlyNA==FALSE]
-
 ```
 By removing the "mostly NA" columns, we've reduced the count to `r length(names(trnFrame2))`.
 
@@ -154,15 +173,227 @@ a significant effect on the prediction model.
 Similarly, we couldn't justify that a window would affect the outcome.
 Therefore, in order to further reduce the number of predictors, 
 we'll remove columns 1 through 6, which appear to be a sample number, 
-the subject's name, a couple of time stamps, and "num_window."
+the subject's name, a couple of time stamps, and "num_window." (not shown)
 
-```{r idCols, echo=TRUE}
+```{r idCols, echo=FALSE}
 trnFrame2 <- trnFrame2[, -(1:6)]
 dim(trnFrame2)
 ```
 
 Now we've reduced the number of variables to `r length(names(trnFrame2))`;
 however we still have `r nrow(trnFrame2)` rows in the data set.
+We'll reduce that count when we split the "trnFrame2" data into 
+two separate sets; one for training, the other for validation.
+
+### Creating a Cross Validation set
+
+We'll create a cross validation data set for comparison 
+to the model we'll create using the training data subset.
+
+A common ration for training / testing / validation data sets 
+is about 70% / 15% / 15% respectively.  
+Our usual preference is a 60% / 40% split for training vs validation.
+However in this case, the testing data set contains only 20 observations, 
+while the original training data set is almost three orders of magniture larger.
+Even a 15% cut is still about two orders of magniture larger than the test data.
+Given the relative sizes, and the fact that we're not comfortable with 
+a split much greater than 70% / 30%, we will arbitrarily partition the 
+testing data using a random 70% sample to use for model building;
+and using the remaining 30% for validation / accuracy measurement.
+
+```{r split1, echo=TRUE}
+set.seed(randomSeed)
+nSplit <- createDataPartition(y=trnFrame2$classe, p=0.70, list=FALSE)
+modData <- trnFrame2[nSplit,]
+valData <- trnFrame2[-nSplit,]
+```
+
+Now we have a dataset for modeling with `r nrow(modData)` observations 
+and a validation data set with `r nrow(valData)`.
+However, both of these data sets still have `r ncol(valData)` columns.
+That's still a lot of covariates.
+We'll need to run some additional analysis to determine their 
+relative importance and thus their influence on the prediction algorithm.
+
+## Correlation Analysis
+
+After playing with several models, we decided that 
+a reasonable way to determine the relative importance of 
+the numerous covariables, is to use the Random Forest algorithm, 
+with the "importance" argument set to "TRUE" 
+to assess the importance of the variables as predictors.
+After running the Random Forrest model numerous times 
+with various limits on the number of trees built, 
+we elected to run it without a row limit for this display.
+
+```{r rForrest, echo=TRUE, cache=TRUE}
+set.seed(randomSeed)
+fModel <- randomForest(classe~., data=modData, importance=TRUE)
+varImpPlot(fModel)
+```
+
+We initially selected 10 variables as most significant;
+however, we observed an observable decrease in accuracy 
+after the top 4, and another after the top 6.
+We therefore elected to work with the top six covariable going forward.
+In order to make the top 6, a variable had to place well 
+in the top 10 in several different models (not shown).
+The variable selected place in the top 6 in multiple models.
+The top two variables tended to alternate between first and second place 
+in the various models. A single variable appeared in third place in most models. This leads us to believe that we need to check first and second to see if they are highly correlated with each other.
+
+The top six selected variables are shown below, where 
+we'll check them for correlation.
+
+```{r corr6, echo=TRUE}
+top6 <- c("yaw_belt", "roll_belt", "magnet_dumbbell_z", "pitch_forearm", "pitch_belt", "magnet_dumbbell_y")
+top6Corr <- cor(modData[, top6])
+top6Corr
+```
+
+From the above, we see that our top two (i.e. "roll_belt" and "yaw_belt") show about an 82% correlation with each other; our suspicions are confirmed; we'd be hard pressed to call them "independent covariates."
+
+Since they seem to be so closely correlated, we should eliminate one of them from the analysis. 
+The problem is choosing which one is the more influential covariate.
+One way to discover this is to draw a "Classification Tree" using the modeling data.
+
+```{r classTree, echo=FALSE}
+tModel <- rpart(classe ~ ., data=modData, method="class")
+prp(tModel)
+```
+
+Note that the Classification Tree above selected "roll_belt" as the first discriminant
+among the top 6, indicating that it is more important than other covariants.
+We previously ran a Classification tree using 53 covariants with similar results.
+This finding indicates that, of the top two covarients, "roll_belt" is more important, 
+and should be kept, while "yaw_belt" is dropped from the list.
+Thus we have our "top5."
+
+```{r top6Corr, echo=TRUE}
+top5 <- top6[2:6]
+top5Corr <- cor(modData[, top5])
+top5Corr
+```
+
+From the above, we see that none of the remaining "top 5" covarients 
+exibits more than 50% correlaton with any of the others.
+Thus, we can reasonably consider our top 5 to be a set of relatively independent variables.
+
+Our top 5 independent variables: `r top5`.
+
+So let's make a new training set for modeling that contains only our selected "top-5."
+
+```{r finalMod, echo=TRUE}
+modFrame <- data.frame(modData$classe,modData$roll_belt,modData$magnet_dumbbell_z,modData$pitch_forearm,modData$pitch_belt,modData$magnet_dumbbell_y)
+names(modFrame)<-c("classe",top5)
+dim(modFrame)
+```
+
+That's somewhat better; now we have a data frame 
+that contains `r ncol(modFrame)` columns, and only `r nrow(modFrame)` rows / observations.
+Let's use that for training.
+
+
+## Prediction Modeling 
+
+During our analysis, we explored using Decision Trees, Generalized Boosted Models, 
+and Random Forest models. We found some unacceptable error rates among some of them (not shown).
+
+Of these methods, we found the Random Forest algorithm to yield the more satisfactory results.
+
+After evaluating a trade-off between performance and error rate, 
+we elected to use the Random Forest algorithm for training, 
+hoping that we have not mistaken the “best possible solution” for the “most likely solution.” 
+
+We are using the Random Forest algorithm, with our top 5 variables (listed above) for training.
+Our top 5 variables are relatively independent, with a maximum correlation of less than 50% between any of them. 
+
+### Training 
+
+Since the training data are so large, we will attempt to keep k-fold cross-validation
+as simple as practicable. 
+
+
+```{r training, echo=TRUE, cache=TRUE}
+set.seed(randomSeed)
+nFolds <- 4
+modFit <- train(classe ~ ., method="rf", data=modFrame,
+                trControl=trainControl(method="cv", number=nFolds))
+modFit
+```
+
+### Accuracy
+
+We'll use the "confusionMatrix" function from "caret" to get a reasonable idea of the accuracy of our model.
+
+We'll apply it against that "Validation" set that we've been keeping.
+
+```{r accutron, echo=TRUE, cache=TRUE}
+vPredictions <- predict(modFit, newdata=valData)
+confMat <- confusionMatrix(vPredictions, valData$classe)
+confMat
+
+
+```
+
+This indicates that our accuracy is almost 96%, using only our top 5 variables as predictors.
+
+### Error Rate
+
+The error rate is 1 - accuracy; which would imply that 
+the error rate using only our top 5 variables is about 4%.
+We could probably have done better by including additional 
+"high value" variable from our list in the final computations.
+
+
+## Coursera Challenge 
+
+Now we'll attempt to answer the 20 observations challenge represented by the "Testing" data set.
+
+We've been holding the test data in "tstFrame."
+
+We'll compute our "predictions" for "classe" and insert them in a new column in the "tstFrame."
+
+```{r challeng, echo=TRUE, cache=TRUE}
+cPredictions <- predict(modFit, newdata=tstFrame)
+tstFrame$classe <- cPredictions
+
+# Create a data frame with just the problem-ID's and predictions
+cFrame <- data.frame(problem_id=tstFrame$problem_id, classe=tstFrame$classe)
+cFrame
+```
+
+Finally, we need to create twenty ".txt" files that will be uploaded to Coursera.
+
+The twenty files to be named "problem_1.txt" ... "problem_20.txt," 
+and are to contain only the predictions.
+
+```{r txtF, echo=TRUE}
+predictions <- cFrame$classe
+createTxt = function (x) {
+  n = length(x)
+  for (i in 1:n) {
+    fName = paste0("problem_",i,".txt")
+    write.table(x[i], file=fName, row.names=FALSE, col.names=FALSE, quote=FALSE)
+  }
+}
+createTxt(predictions)
+```  
+
+## Conclusion
+
+The accuracy of the model, as tested against the validation data set 
+was within acceptable limits, indicating a prediction accuracy of 96% and error of 4%.
+
+We expect that inclusion of the four next most significant covariables 
+will result in increasing accuracy to approximately 99% or better.
+
+
+
+
+
+
+
 
 
 
