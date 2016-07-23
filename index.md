@@ -437,23 +437,6 @@ cFrame
 ## 20         20      B
 ```
 
-Finally, we need to create twenty ".txt" files that will be uploaded to Coursera.
-
-The twenty files to be named "problem_1.txt" ... "problem_20.txt," 
-and are to contain only the predictions.
-
-
-```r
-predictions <- cFrame$classe
-createTxt = function (x) {
-  n = length(x)
-  for (i in 1:n) {
-    fName = paste0("problem_",i,".txt")
-    write.table(x[i], file=fName, row.names=FALSE, col.names=FALSE, quote=FALSE)
-  }
-}
-createTxt(predictions)
-```
 
 ## Conclusion
 
